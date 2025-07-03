@@ -1,0 +1,158 @@
+<div class="container mt-3">
+  <!-- Button trigger modal -->
+  <div>
+    <button
+      type="button"
+      class="btn btn-primary"
+      data-bs-toggle="modal"
+      data-bs-target="#add-customer-modal"
+    >
+      Add Customer
+    </button>
+  </div>
+  <br />
+  <select class="form-select" id="customers-list">
+    <option selected>Please select one customer</option>
+  </select>
+  <hr />
+  <div>
+    <table class="table table-striped" id="customer-meals">
+      <thead>
+        <tr>
+          <th>Food Name</th>
+          <th>Brand</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal -->
+<div
+  class="modal fade"
+  id="add-customer-modal"
+  tabindex="-1"
+  aria-labelledby="add-customer-label"
+  aria-hidden="true"
+>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form action="#">
+        <div class="modal-header">
+          <h5 class="modal-title" id="add-customer-label">Add Customer</h5>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="modal"
+            aria-label="Close"
+          ></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3 mt-3">
+            <label for="first_name">First name:</label>
+            <input
+              type="text"
+              class="form-control"
+              id="first_name"
+              placeholder="Enter first name"
+              name="first_name"
+            />
+          </div>
+          <div class="mb-3">
+            <label for="pwd">Last name:</label>
+            <input
+              type="text"
+              class="form-control"
+              id="last_name"
+              placeholder="Enter last name"
+              name="last_name"
+            />
+          </div>
+          <div class="mb-3">
+            <label for="birth_date">Birth date:</label>
+            <input
+              type="date"
+              class="form-control"
+              id="birth_date"
+              placeholder="Enter birth date"
+              name="birth_date"
+            />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+          >
+            Close
+          </button>
+          <button type="submit" class="btn btn-primary">Save changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+$(function() {
+  // 1. Populate the <select> HTML element with the id `customers-list` with all customers from the database
+  function loadCustomers(selectedId = null) {
+    CustomersService.getAll(function(customers){
+      var select = $("#customers-list");
+      select.html('<option selected>Please select one customer</option>');
+      customers.forEach(function(c){
+        var opt = $("<option>")
+          .val(c.id)
+          .text(c.first_name + " " + c.last_name);
+        if(selectedId && c.id == selectedId) opt.prop("selected", true);
+        select.append(opt);
+      });
+    });
+  }
+
+  // 2. When the select list item changes, fetch all meals for the selected customer and populate the table
+  $("#customers-list").on("change", function(){
+    var customerId = $(this).val();
+    var tbody = $("#customer-meals tbody");
+    if(!customerId || isNaN(customerId)){
+      tbody.html('');
+      return;
+    }
+    CustomersService.getMeals(customerId, function(meals){
+      tbody.html('');
+      meals.forEach(function(meal){
+        var tr = $("<tr>");
+        tr.append($("<td>").text(meal.food_name));
+        tr.append($("<td>").text(meal.food_brand));
+        tr.append($("<td>").text(meal.meal_date));
+        tbody.append(tr);
+      });
+    });
+  });
+
+  // 3. Use the modal to add customer to the database
+  $("#add-customer-modal form").on("submit", function(e){
+    e.preventDefault();
+    var data = {
+      first_name: $("#first_name").val(),
+      last_name: $("#last_name").val(),
+      birth_date: $("#birth_date").val()
+    };
+    CustomersService.add(data, function(added){
+      // 3.1. After the customer has been added successfully, refresh the list of customers
+      loadCustomers(added.id);
+      // Hide modal (Bootstrap 5)
+      var modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('add-customer-modal'));
+      modal.hide();
+      // Optionally reset form
+      $("#add-customer-modal form")[0].reset();
+    });
+  });
+
+  // Initial load
+  loadCustomers();
+});
+</script>
